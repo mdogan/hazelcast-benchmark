@@ -23,10 +23,12 @@ func parseFlags() {
     flag.IntVar(&port, "p", port, "Server port")
     flag.IntVar(&keyCount, "r", keyCount, "Key space range")
     flag.IntVar(&valueSize, "d", valueSize, "Data size in bytes")
-    flag.IntVar(&requests, "n", keyCount, "Number of total requests")
+    flag.IntVar(&requests, "n", requests, "Number of total requests")
     flag.IntVar(&clients, "c", clients, "Number of client threads")
     flag.StringVar(&mapName, "m", mapName, "Name of the Hazelcast IMap")
     flag.StringVar(&ratioStr, "ratio", ratioStr, "Set:Get ratio")
+
+    flag.Parse()
 
     split := strings.Split(ratioStr, ":")
     if len(split) != 2 {

@@ -34,13 +34,14 @@ func benchmark(m core.Map, wg *sync.WaitGroup, ctx context.Context, ch chan *res
             return
         default:
 
-            k := rnd.Intn(setRatio + getRatio)
+            op := rnd.Intn(setRatio + getRatio)
+            k := rnd.Intn(keyCount)
             start := time.Now()
 
-            if k < getRatio {
-                _, err = m.Get(i)
+            if op < getRatio {
+                _, err = m.Get(k)
             } else {
-                err = m.Set(i, value)
+                err = m.Set(k, value)
             }
             elapsed := time.Now().Sub(start)
             _ = hist.RecordValue(elapsed.Nanoseconds())
