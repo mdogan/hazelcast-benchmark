@@ -7,6 +7,7 @@ import (
     "os/signal"
     "strings"
     "sync"
+    "sync/atomic"
     "syscall"
     "time"
 
@@ -36,8 +37,16 @@ func main() {
         go benchmark(m, &wg, ctx, resultCh)
     }
 
+    wgt := sync.WaitGroup{}
+    wgt.Add(1)
+    go printThroughput(ctx, &wgt)
+
     handleSignal(cancelF)
     wg.Wait()
+    cancelF()
+
+    wgt.Wait()
+    fmt.Printf("%100s\r", "")
 
     total := hdrhistogram.New(1, int64(time.Second), 3)
     ops := float64(0)
@@ -47,16 +56,32 @@ func main() {
         ops += float64(r.Histogram.TotalCount()) / float64(r.duration.Microseconds())
     }
     setCount := (setRatio * requests) / (setRatio + getRatio)
-    fmt.Printf("Set Count\t\t: %5d\n", setCount)
-    fmt.Printf("Get Count\t\t: %5d\n", requests - setCount)
-    fmt.Printf("Keyspace Range\t\t: %5d\n", keyCount)
-    fmt.Printf("Value Size\t\t: %5d\n", valueSize)
-    fmt.Printf("Number of Requests\t: %5d\n", requests)
-    fmt.Printf("Number of Threads\t: %5d\n", clients)
+    fmt.Printf("Set Count\t\t: %10d\n", setCount)
+    fmt.Printf("Get Count\t\t: %10d\n", requests - setCount)
+    fmt.Printf("Keyspace Range\t\t: %10d\n", keyCount)
+    fmt.Printf("Value Size\t\t: %10d\n", valueSize)
+    fmt.Printf("Number of Requests\t: %10d\n", requests)
+    fmt.Printf("Number of Threads\t: %10d\n", clients)
 
 
     fmt.Println(buildHistogramString(total, 1000))
     fmt.Printf("Throughput: %.3F op/s\n\n", ops * 1000000)
+}
+
+func printThroughput(ctx context.Context, w *sync.WaitGroup) {
+    defer w.Done()
+    start := time.Now()
+    ticker := time.NewTicker(time.Second)
+    for {
+        select {
+        case <- ctx.Done():
+            return
+        case <- ticker.C:
+            diff := time.Now().Sub(start)
+            t := float64(atomic.LoadUint64(&totalOperations)) / float64(diff.Microseconds())
+            fmt.Printf("Throughput: %.3F op/s\r", t * 1000000)
+        }
+    }
 }
 
 func exit(err error) {
@@ -69,15 +94,11 @@ func handleSignal(cancelF context.CancelFunc) {
     signal.Notify(stopCh, syscall.SIGTERM, syscall.SIGINT)
 
     go func() {
-        select {
-        case s := <-stopCh:
-            fmt.Printf("Stopped via signal %v\n", s)
-            cancelF()
-            //
-        }
+        s := <-stopCh
+        fmt.Printf("Stopped via signal %v\n", s)
+        cancelF()
     }()
 }
-
 
 func buildHistogramString(h *hdrhistogram.Histogram, outputValueUnitScalingRatio float64) string {
     builder := &strings.Builder{}

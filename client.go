@@ -12,6 +12,7 @@ import (
 func newClient() (hazelcast.Client, error) {
     config := hazelcast.NewConfig()
     config.SetProperty(property.LoggingLevel.Name(), logger.ErrorLevel)
+    config.GroupConfig().SetName(clusterName)
     networkConfig := config.NetworkConfig()
     networkConfig.AddAddress(net.JoinHostPort(host, strconv.Itoa(port)))
     return hazelcast.NewClientWithConfig(config)

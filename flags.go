@@ -17,6 +17,7 @@ var mapName = "benchmark"
 var setRatio = 1
 var getRatio = 10
 var ratioStr = strconv.Itoa(setRatio) + ":" + strconv.Itoa(getRatio)
+var clusterName = "dev"
 
 func parseFlags() {
     flag.StringVar(&host, "h", host, "Server hostname")
@@ -27,6 +28,7 @@ func parseFlags() {
     flag.IntVar(&clients, "c", clients, "Number of client threads")
     flag.StringVar(&mapName, "m", mapName, "Name of the Hazelcast IMap")
     flag.StringVar(&ratioStr, "ratio", ratioStr, "Set:Get ratio")
+    flag.StringVar(&clusterName, "cluster", clusterName, "Hazelcast cluster name")
 
     flag.Parse()
 

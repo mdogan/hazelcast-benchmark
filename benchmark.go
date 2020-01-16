@@ -5,6 +5,7 @@ import (
     "fmt"
     "math/rand"
     "sync"
+    "sync/atomic"
     "time"
 
     "github.com/hazelcast/hazelcast-go-client/core"
@@ -15,6 +16,8 @@ type result struct {
     *hdrhistogram.Histogram
     duration time.Duration
 }
+
+var totalOperations uint64
 
 func benchmark(m core.Map, wg *sync.WaitGroup, ctx context.Context, ch chan *result) {
     hist := hdrhistogram.New(1, int64(time.Second), 3)
@@ -46,6 +49,10 @@ func benchmark(m core.Map, wg *sync.WaitGroup, ctx context.Context, ch chan *res
             elapsed := time.Now().Sub(start)
             _ = hist.RecordValue(elapsed.Nanoseconds())
             result.duration += elapsed
+
+            if i % 100 == 0 {
+                atomic.AddUint64(&totalOperations, 100)
+            }
 
             if err != nil {
                 fmt.Println(err)
